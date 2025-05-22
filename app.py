@@ -23,8 +23,15 @@ openai.api_key = st.secrets["openai"]["api_key"]
 
 @st.cache_data
 def load_data(path="synthetic_bronchiolitis_dataset.csv"):
-    df = pd.read_csv(path, parse_dates=["index_year"])
+    # Don’t parse dates—just read the year column
+    df = pd.read_csv(path)
+    # If your column is named something else (e.g. "year"), rename it:
+    if "year" in df.columns and "index_year" not in df.columns:
+        df.rename(columns={"year": "index_year"}, inplace=True)
+    # Now ensure it's integer
+    df["index_year"] = df["index_year"].astype(int)
     return df
+
 
 df = load_data()
 
@@ -118,6 +125,12 @@ functions = [
 
 
 # ── 4) Streamlit UI ────────────────────────────────────────────────────────────
+df = load_data("synthetic_bronchiolitis_dataset.csv")
+
+# ← Put it here, just after df is ready
+st.sidebar.subheader("Available columns")
+st.sidebar.write(df.columns.tolist())
+
 st.title("🔍 Bronchiolitis Chatbot")
 
 user_q = st.text_input("Ask a question about your data…", 
