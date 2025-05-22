@@ -137,8 +137,8 @@ st.sidebar.write(df.columns.tolist())
 
 st.title("🔍 Bronchiolitis Chatbot")
 
-user_q = st.text_input("Ask a question about your data…", 
-                       placeholder="e.g. Is albuterol usage higher after 2022?")
+user_q = st.text_input("Ask a question about the data…", 
+                       placeholder="e.g. Is steroid usage higher after 2022?")
 
 if st.button("Submit") and user_q:
     # Ask LLM (with function schema)
