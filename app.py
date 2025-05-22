@@ -36,10 +36,7 @@ def load_data(path="synthetic_bronchiolitis_dataset.csv"):
 df = load_data()
 
 def compare_usage(column: str, cutoff_year: int, positive_value=None):
-    use_label     = str(positive_value)            if positive_value is not None else "Yes"
-    not_use_label = f"No {positive_value}"         if positive_value is not None else "No"
 
-    ctab = ctab.rename(columns={0: not_use_label, 1: use_label})
 
     real_col = resolve_column(column)
     df["period"] = df["index_year"].apply(
@@ -64,6 +61,11 @@ def compare_usage(column: str, cutoff_year: int, positive_value=None):
         for val in [0,1]:
             if val not in ctab.columns: ctab[val] = 0
         ctab = ctab.sort_index().sort_index(axis=1)
+
+        use_label     = str(positive_value)            if positive_value is not None else "Yes"
+        not_use_label = f"No {positive_value}"         if positive_value is not None else "No"
+
+        ctab = ctab.rename(columns={0: not_use_label, 1: use_label})
 
         try:
             chi2, pval, _, _ = chi2_contingency(ctab, correction=False)
