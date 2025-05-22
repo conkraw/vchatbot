@@ -54,33 +54,31 @@ def compare_usage(column: str, cutoff_year: int, positive_value=None):
         t_stat, pval_
 
 # ── 3) Expose to OpenAI ────────────────────────────────────────────────────────
+COLUMN_NAMES = df.columns.tolist()
+
 functions = [
-    {
-      "name": "compare_usage",
-      "description": "Compare a column’s distribution before vs. after a given year",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "column": {
-            "type": "string",
-            "description": "Name of the dataframe column to compare"
-          },
-          "cutoff_year": {
-            "type": "integer",
-            "description": "Year threshold for before/after splitting"
-          },
-          "positive_value": {
-            "type": ["string","null"],
-            "description": (
-              "For categorical columns: the value to treat as “positive” "
-              "(e.g. 1 or 'dexamethasone'); omit for numeric t-test"
-            )
-          }
+  {
+    "name": "compare_usage",
+    "description": "Compare a column’s distribution before vs. after a given year",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "column": {
+          "type": "string",
+          "enum": COLUMN_NAMES,
+          "description": "One of: " + ", ".join(COLUMN_NAMES)
         },
-        "required": ["column","cutoff_year"]
-      }
+        "cutoff_year": {"type": "integer"},
+        "positive_value": {
+          "type": ["string","null"],
+          "description": "…"
+        }
+      },
+      "required": ["column","cutoff_year"]
     }
+  }
 ]
+
 
 # ── 4) Streamlit UI ────────────────────────────────────────────────────────────
 st.title("🔍 Bronchiolitis Chatbot")
