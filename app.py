@@ -28,8 +28,6 @@ def load_data(path="synthetic_bronchiolitis_dataset.csv"):
 
 df = load_data()
 
-st.dataframe(df)
-
 # ── 2) Generic comparison function ─────────────────────────────────────────────
 def compare_usage(column: str, cutoff_year: int, positive_value=None):
     # first resolve any close match
