@@ -167,7 +167,8 @@ if st.button("Submit") and user_q:
                     cnt = ctab.loc[period, outcome]
                     prc = pct.loc[period, outcome]
                     ctab_fmt.loc[period, outcome] = f"{cnt} ({prc:.1f}%)"
-        
+
+            ctab_fmt.index = [label.capitalize() for label in ctab_fmt.index]
             # 4) display it
             st.subheader("Contingency Table (count and % of row)")
             st.table(ctab_fmt)
