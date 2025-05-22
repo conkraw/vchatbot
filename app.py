@@ -20,7 +20,7 @@ df = load_data()
 # ── 2) Generic comparison function ─────────────────────────────────────────────
 def compare_usage(column: str, cutoff_year: int, positive_value=None):
     # 1) pull out just the year
-    df["index_year"] = df["admission_date"].dt.year
+    df["index_year"] = df["index_year"].dt.year
 
     # 2) determine period
     df["period"] = df["index_year"].apply(
