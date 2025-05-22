@@ -32,8 +32,6 @@ df = load_data()
 def compare_usage(column: str, cutoff_year: int, positive_value=None):
     # first resolve any close match
     real_col = resolve_column(column)
-    # then proceed using real_col instead of column…
-    mask = df[real_col].apply(…)
     
     # 1) pull out just the year
     df["index_year"] = df["index_year"].dt.year
