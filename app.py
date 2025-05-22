@@ -62,11 +62,12 @@ def compare_usage(column: str, cutoff_year: int, positive_value=None):
             if val not in ctab.columns: ctab[val] = 0
         ctab = ctab.sort_index().sort_index(axis=1)
 
-        use_label     = str(positive_value)            if positive_value is not None else "Yes"
-        not_use_label = f"No {positive_value}"         if positive_value is not None else "No"
-
+        # ==== insert the rename here ====
+        flag_name     = positive_value if isinstance(positive_value, str) else real_col
+        use_label     = f"{flag_name}"
+        not_use_label = f"No {flag_name}"
         ctab = ctab.rename(columns={0: not_use_label, 1: use_label})
-
+        # ================================
         try:
             chi2, pval, _, _ = chi2_contingency(ctab, correction=False)
             test = "chi-square"
