@@ -61,11 +61,32 @@ def compare_usage(column: str, cutoff_year: int, positive_value=None):
             "n_after": int(ctab.loc["after"].sum())
         }
 
-    else:
-        # numeric t-test path…
-        before = df.loc[df["period"]=="before", column].dropna()
-        after  = df.loc[df["period"]=="after",  column].dropna()
-        t_stat, pval_
+        else:
+            # numeric t-test path…
+            before = df.loc[df["period"]=="before", column].dropna()
+            after  = df.loc[df["period"]=="after",  column].dropna()
+            t_stat, pval_
+    
+        try:
+            chi2, pval, _, _ = chi2_contingency(ctab, correction=False)
+            test = "chi-square"
+        except ValueError:
+            if ctab.shape == (2, 2):
+                _, pval = fisher_exact(ctab)
+                chi2    = None
+                test    = "fisher-exact"
+            else:
+                # you could drop zero‐sum rows/cols here instead
+                raise
+    
+        return {
+            "test": test,
+            "chi2_statistic": chi2,
+            "p_value": pval,
+            "contingency_table": ctab.to_dict(),
+            "n_before": int(ctab.loc["before"].sum()),
+            "n_after":  int(ctab.loc["after"].sum())
+        }
 
 # ── 3) Expose to OpenAI ────────────────────────────────────────────────────────
 COLUMN_NAMES = df.columns.tolist()
