@@ -36,28 +36,28 @@ def load_data(path="synthetic_bronchiolitis_dataset.csv"):
 df = load_data()
 
 def compare_usage(column: str, cutoff_year: int, positive_value=None):
-    # 1) figure out the real column name
     real_col = resolve_column(column)
-
-    # 2) tag each row before/after
     df["period"] = df["index_year"].apply(
         lambda y: "after" if y >= cutoff_year else "before"
     )
 
-    # 3a) Categorical branch: χ², fallback to Fisher if needed
-    if positive_value is not None:
-        df["__flag"] = df[real_col].apply(
-            lambda x: x == positive_value or (isinstance(x, str) and positive_value in x)
-        ).astype(int)
+    # detect categorical string column
+    if positive_value is not None or df[real_col].dtype == object:
+        # if no positive_value given, count ANY non-empty string
+        if positive_value is None:
+            mask = (
+                df[real_col].notnull()
+                & df[real_col].astype(str).str.strip().ne("")
+            )
+        else:
+            mask = df[real_col].astype(str).str.contains(positive_value)
 
+        df["__flag"] = mask.astype(int)
         ctab = pd.crosstab(df["period"], df["__flag"])
-        # ensure both rows & cols exist
-        for p in ["before", "after"]:
-            if p not in ctab.index:
-                ctab.loc[p] = [0, 0]
-        for val in [0, 1]:
-            if val not in ctab.columns:
-                ctab[val] = 0
+        for p in ["before","after"]:
+            if p not in ctab.index: ctab.loc[p] = [0,0]
+        for val in [0,1]:
+            if val not in ctab.columns: ctab[val] = 0
         ctab = ctab.sort_index().sort_index(axis=1)
 
         try:
@@ -65,13 +65,9 @@ def compare_usage(column: str, cutoff_year: int, positive_value=None):
             test = "chi-square"
         except ValueError:
             # Fisher’s Exact for 2×2
-            if ctab.shape == (2, 2):
-                _, pval = fisher_exact(ctab)
-                chi2 = None
-                test = "fisher-exact"
-            else:
-                # or drop zero rows/cols and retry χ²
-                raise
+            _, pval = fisher_exact(ctab)
+            chi2 = None
+            test = "fisher-exact"
 
         return {
             "test": test,
@@ -81,7 +77,6 @@ def compare_usage(column: str, cutoff_year: int, positive_value=None):
             "n_before": int(ctab.loc["before"].sum()),
             "n_after":  int(ctab.loc["after"].sum()),
         }
-
     # 3b) Numeric branch: two‐sample t-test
     else:
         before = df.loc[df["period"] == "before", real_col].dropna()
