@@ -6,6 +6,17 @@ import pandas as pd
 import openai
 from dotenv import load_dotenv
 from scipy.stats import chi2_contingency, ttest_ind
+import difflib
+
+
+def resolve_column(user_col):
+    if user_col in df.columns:
+        return user_col
+    # try fuzzy matching
+    close = difflib.get_close_matches(user_col, df.columns, n=1, cutoff=0.6)
+    if close:
+        return close[0]
+    raise KeyError(f"Column `{user_col}` not found")
 
 # ── 1) Setup ────────────────────────────────────────────────────────────────────
 openai.api_key = st.secrets["openai"]["api_key"]
@@ -19,6 +30,11 @@ df = load_data()
 
 # ── 2) Generic comparison function ─────────────────────────────────────────────
 def compare_usage(column: str, cutoff_year: int, positive_value=None):
+    # first resolve any close match
+    real_col = resolve_column(column)
+    # then proceed using real_col instead of column…
+    mask = df[real_col].apply(…)
+    
     # 1) pull out just the year
     df["index_year"] = df["index_year"].dt.year
 
