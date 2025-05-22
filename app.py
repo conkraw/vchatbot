@@ -153,9 +153,24 @@ if st.button("Submit") and user_q:
 
         # Display raw results
         if "contingency_table" in result:
+            # 1) rebuild the raw counts DataFrame
             ctab = pd.DataFrame(result["contingency_table"])
-            st.subheader("Contingency Table")
-            st.table(ctab)
+            ctab = ctab.sort_index().sort_index(axis=1)
+        
+            # 2) compute row percentages
+            pct = ctab.div(ctab.sum(axis=1), axis=0) * 100
+        
+            # 3) build a formatted table "count (xx.x%)"
+            ctab_fmt = ctab.copy().astype(str)
+            for period in ctab.index:
+                for outcome in ctab.columns:
+                    cnt = ctab.loc[period, outcome]
+                    prc = pct.loc[period, outcome]
+                    ctab_fmt.loc[period, outcome] = f"{cnt} ({prc:.1f}%)"
+        
+            # 4) display it
+            st.subheader("Contingency Table (count and % of row)")
+            st.table(ctab_fmt)
         else:
             st.subheader("Group Statistics")
             st.write(f"Mean before: {result['mean_before']:.2f} "
