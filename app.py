@@ -8,8 +8,7 @@ from dotenv import load_dotenv
 from scipy.stats import chi2_contingency, ttest_ind
 
 # ── 1) Setup ────────────────────────────────────────────────────────────────────
-load_dotenv()  
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = st.secrets["openai"]["api_key"]
 
 @st.cache_data
 def load_data(path="synthetic_bronchiolitis_dataset.csv"):
