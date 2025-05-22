@@ -36,25 +36,22 @@ def load_data(path="synthetic_bronchiolitis_dataset.csv"):
 df = load_data()
 
 def compare_usage(column: str, cutoff_year: int, positive_value=None):
-
-
     real_col = resolve_column(column)
     df["period"] = df["index_year"].apply(
         lambda y: "after" if y >= cutoff_year else "before"
     )
 
-    # detect categorical string column
+    # Categorical branch (χ² / Fisher)
     if positive_value is not None or df[real_col].dtype == object:
-        # if no positive_value given, count ANY non-empty string
+        # build the 0/1 flag
         if positive_value is None:
-            mask = (
-                df[real_col].notnull()
-                & df[real_col].astype(str).str.strip().ne("")
-            )
+            mask = (df[real_col].notnull()
+                    & df[real_col].astype(str).str.strip().ne(""))
         else:
-            mask = df[real_col].astype(str).str.contains(positive_value)
-
+            mask = df[real_col].astype(str).str.contains(str(positive_value))
         df["__flag"] = mask.astype(int)
+
+        # 1) build & sort the crosstab
         ctab = pd.crosstab(df["period"], df["__flag"])
         for p in ["before","after"]:
             if p not in ctab.index: ctab.loc[p] = [0,0]
@@ -62,20 +59,23 @@ def compare_usage(column: str, cutoff_year: int, positive_value=None):
             if val not in ctab.columns: ctab[val] = 0
         ctab = ctab.sort_index().sort_index(axis=1)
 
-        # ==== insert the rename here ====
-        flag_name     = positive_value if isinstance(positive_value, str) else real_col
+        # 2) **HERE** do your rename
+        # pick a human‐friendly flag name:
+        flag_name = (positive_value 
+                     if isinstance(positive_value, str) 
+                     else real_col)
         use_label     = f"{flag_name}"
         not_use_label = f"No {flag_name}"
         ctab = ctab.rename(columns={0: not_use_label, 1: use_label})
-        # ================================
+
+        # 3) now run χ² (or Fisher on failure)
         try:
             chi2, pval, _, _ = chi2_contingency(ctab, correction=False)
             test = "chi-square"
         except ValueError:
-            # Fisher’s Exact for 2×2
             _, pval = fisher_exact(ctab)
-            chi2 = None
-            test = "fisher-exact"
+            chi2    = None
+            test    = "fisher-exact"
 
         return {
             "test": test,
@@ -85,6 +85,7 @@ def compare_usage(column: str, cutoff_year: int, positive_value=None):
             "n_before": int(ctab.loc["before"].sum()),
             "n_after":  int(ctab.loc["after"].sum()),
         }
+
     # 3b) Numeric branch: two‐sample t-test
     else:
         before = df.loc[df["period"] == "before", real_col].dropna()
