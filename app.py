@@ -38,7 +38,7 @@ df = load_data()
 def compare_usage(column: str, cutoff_year: int, positive_value=None):
     real_col = resolve_column(column)
     df["period"] = df["index_year"].apply(
-        lambda y: "After" if y >= cutoff_year else "Before"
+        lambda y: "after" if y >= cutoff_year else "before"
     )
 
     # Categorical branch (χ² / Fisher)
