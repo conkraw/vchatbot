@@ -12,7 +12,7 @@ openai.api_key = st.secrets["openai"]["api_key"]
 
 @st.cache_data
 def load_data(path="synthetic_bronchiolitis_dataset.csv"):
-    df = pd.read_csv(path, parse_dates=["admission_date"])
+    df = pd.read_csv(path, parse_dates=["index_year"])
     return df
 
 df = load_data()
