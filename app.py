@@ -9,14 +9,14 @@ from scipy.stats import chi2_contingency, ttest_ind
 import difflib
 
 
-def resolve_column(user_col):
+def resolve_column(user_col: str) -> str:
+    """Map user’s guess to the closest real column name."""
     if user_col in df.columns:
         return user_col
-    # try fuzzy matching
-    close = difflib.get_close_matches(user_col, df.columns, n=1, cutoff=0.6)
-    if close:
-        return close[0]
-    raise KeyError(f"Column `{user_col}` not found")
+    match = difflib.get_close_matches(user_col, df.columns, n=1, cutoff=0.6)
+    if match:
+        return match[0]
+    raise KeyError(f"Column '{user_col}' not found in data")
 
 # ── 1) Setup ────────────────────────────────────────────────────────────────────
 openai.api_key = st.secrets["openai"]["api_key"]
@@ -28,64 +28,66 @@ def load_data(path="synthetic_bronchiolitis_dataset.csv"):
 
 df = load_data()
 
-# ── 2) Generic comparison function ─────────────────────────────────────────────
 def compare_usage(column: str, cutoff_year: int, positive_value=None):
-    # first resolve any close match
+    # 1) figure out the real column name
     real_col = resolve_column(column)
-    
-    # 1) pull out just the year
-    df["index_year"] = df["index_year"].dt.year
 
-    # 2) determine period
+    # 2) tag each row before/after
     df["period"] = df["index_year"].apply(
         lambda y: "after" if y >= cutoff_year else "before"
     )
 
+    # 3a) Categorical branch: χ², fallback to Fisher if needed
     if positive_value is not None:
-        # categorical χ² path…
-        mask = df[column].apply(lambda x: x == positive_value 
-                                         or (isinstance(x, str) and positive_value in x))
-        df["__flag"] = mask.astype(int)
-        ctab = pd.crosstab(df["period"], df["__flag"])
-        # fill missing rows/cols…
-        for p in ["before","after"]:
-            if p not in ctab.index: ctab.loc[p] = [0,0]
-        for val in [0,1]:
-            if val not in ctab.columns: ctab[val] = 0
-        chi2, pval, _, _ = chi2_contingency(ctab.sort_index().sort_index(axis=1))
-        return {
-            "contingency_table": ctab.sort_index().sort_index(axis=1).to_dict(),
-            "chi2_statistic": float(chi2),
-            "p_value": float(pval),
-            "n_before": int(ctab.loc["before"].sum()),
-            "n_after": int(ctab.loc["after"].sum())
-        }
+        df["__flag"] = df[real_col].apply(
+            lambda x: x == positive_value or (isinstance(x, str) and positive_value in x)
+        ).astype(int)
 
-        else:
-            # numeric t-test path…
-            before = df.loc[df["period"]=="before", column].dropna()
-            after  = df.loc[df["period"]=="after",  column].dropna()
-            t_stat, pval_
-    
+        ctab = pd.crosstab(df["period"], df["__flag"])
+        # ensure both rows & cols exist
+        for p in ["before", "after"]:
+            if p not in ctab.index:
+                ctab.loc[p] = [0, 0]
+        for val in [0, 1]:
+            if val not in ctab.columns:
+                ctab[val] = 0
+        ctab = ctab.sort_index().sort_index(axis=1)
+
         try:
             chi2, pval, _, _ = chi2_contingency(ctab, correction=False)
             test = "chi-square"
         except ValueError:
+            # Fisher’s Exact for 2×2
             if ctab.shape == (2, 2):
                 _, pval = fisher_exact(ctab)
-                chi2    = None
-                test    = "fisher-exact"
+                chi2 = None
+                test = "fisher-exact"
             else:
-                # you could drop zero‐sum rows/cols here instead
+                # or drop zero rows/cols and retry χ²
                 raise
-    
+
         return {
             "test": test,
             "chi2_statistic": chi2,
             "p_value": pval,
             "contingency_table": ctab.to_dict(),
             "n_before": int(ctab.loc["before"].sum()),
-            "n_after":  int(ctab.loc["after"].sum())
+            "n_after":  int(ctab.loc["after"].sum()),
+        }
+
+    # 3b) Numeric branch: two‐sample t-test
+    else:
+        before = df.loc[df["period"] == "before", real_col].dropna()
+        after  = df.loc[df["period"] == "after",  real_col].dropna()
+        t_stat, pval = ttest_ind(before, after, nan_policy="omit")
+
+        return {
+            "mean_before": float(before.mean()),
+            "mean_after":  float(after.mean()),
+            "n_before":    int(before.count()),
+            "n_after":     int(after.count()),
+            "t_statistic": float(t_stat),
+            "p_value":     float(pval),
         }
 
 # ── 3) Expose to OpenAI ────────────────────────────────────────────────────────
