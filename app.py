@@ -59,15 +59,8 @@ def compare_usage(column: str, cutoff_year: int, positive_value=None):
             if val not in ctab.columns: ctab[val] = 0
         ctab = ctab.sort_index().sort_index(axis=1)
 
-        # 2) **HERE** do your rename
-        # pick a human‐friendly flag name:
-        flag_name = (positive_value 
-                     if isinstance(positive_value, str) 
-                     else real_col)
-        use_label     = f"{flag_name}"
-        not_use_label = f"No {flag_name}"
-        ctab = ctab.rename(columns={0: not_use_label, 1: use_label})
-
+        ctab = ctab.rename(columns={0: "No Outcome", 1: "Outcome"})
+        
         # 3) now run χ² (or Fisher on failure)
         try:
             chi2, pval, _, _ = chi2_contingency(ctab, correction=False)
