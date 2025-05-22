@@ -5,7 +5,7 @@ import streamlit as st
 import pandas as pd
 import openai
 from dotenv import load_dotenv
-from scipy.stats import chi2_contingency, ttest_ind
+from scipy.stats import chi2_contingency, fisher_exact, ttest_ind
 import difflib
 
 
